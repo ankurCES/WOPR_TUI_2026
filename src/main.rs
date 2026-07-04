@@ -1,5 +1,8 @@
 mod app;
+mod config;
 mod event;
+mod game;
+mod llm;
 mod mode;
 mod state;
 mod terminal;

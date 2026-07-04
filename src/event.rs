@@ -1,9 +1,7 @@
 use crossterm::event::KeyEvent;
 use tokio::sync::mpsc;
 
-// ponytail: placeholder — T6.1 expands with all game state transitions
-#[derive(Debug, Clone)]
-pub enum GameEvent {}
+use crate::game::events::GameEvent;
 
 #[derive(Debug)]
 pub enum AppEvent {

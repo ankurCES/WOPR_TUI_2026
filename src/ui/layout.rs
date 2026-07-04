@@ -1,8 +1,8 @@
 use ratatui::{
     Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
-    style::{Color, Style},
-    text::Line,
+    style::{Color, Modifier, Style},
+    text::{Line, Span},
     widgets::{Block, Borders, Clear, Paragraph},
 };
 
@@ -10,84 +10,201 @@ use crate::mode::Mode;
 use crate::state::AppState;
 use crate::view::ViewState;
 
+use super::comms_panel::CommsPanel;
+use super::decision::DecisionPanel;
+use super::threat_overlay::ThreatOverlay;
+use super::world_map::WorldMap;
+
 pub fn render(frame: &mut Frame, view: &ViewState, state: &AppState) {
     render_status_bar(frame, view, state);
     render_content(frame, view, state);
-    render_input_bar(frame, view);
+    render_input_bar(frame, view, state);
     if state.show_help {
         render_help(frame, view);
     }
 }
 
-fn defcon_color(level: u8) -> Color {
-    match level {
-        5 => Color::Green,
-        4 => Color::Cyan,
-        3 => Color::Yellow,
-        2 => Color::Magenta,
-        _ => Color::Red,
-    }
-}
-
 fn render_status_bar(frame: &mut Frame, view: &ViewState, state: &AppState) {
-    let text = format!(
-        " DEFCON {} │ {} │ TICK {:06}",
-        state.defcon_level, state.mode, state.tick_count
-    );
-    frame.render_widget(
-        Paragraph::new(text).style(Style::default().fg(defcon_color(state.defcon_level))),
-        view.status_bar,
-    );
+    let dl = state.defcon.level();
+    let color = state.defcon.color();
+    let label = state.defcon.label();
+    let text = Line::from(vec![
+        Span::styled(
+            format!(" DEFCON {} ", dl),
+            Style::default().fg(Color::Black).bg(color).add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(format!(" {} ", label), Style::default().fg(color)),
+        Span::styled(" │ ", Style::default().fg(Color::DarkGray)),
+        Span::styled(format!("{}", state.mode), Style::default().fg(Color::White)),
+        Span::styled(" │ ", Style::default().fg(Color::DarkGray)),
+        Span::styled(format!("T{:06}", state.tick_count), Style::default().fg(Color::DarkGray)),
+        Span::styled(
+            format!("  TURN {}", state.game_context.turn_number),
+            Style::default().fg(Color::Yellow),
+        ),
+    ]);
+    frame.render_widget(Paragraph::new(text), view.status_bar);
 }
 
 fn render_content(frame: &mut Frame, view: &ViewState, state: &AppState) {
     match &state.mode {
-        Mode::MainMap => render_placeholder(frame, view.content, "MAIN MAP"),
-        Mode::Comms => render_placeholder(frame, view.content, "COMMS"),
-        Mode::Settings => render_placeholder(frame, view.content, "SETTINGS"),
-        Mode::Scenario => render_placeholder(frame, view.content, "SCENARIO"),
-        Mode::Defcon => render_placeholder(frame, view.content, "DEFCON"),
+        Mode::MainMap => render_main_map(frame, view.content, state),
+        Mode::Comms => render_comms(frame, view.content, state),
+        Mode::Scenario => render_scenario(frame, view.content, state),
+        Mode::Defcon => render_defcon(frame, view.content, state),
+        Mode::Settings => render_settings(frame, view.content, state),
     }
 }
 
-fn render_placeholder(frame: &mut Frame, area: Rect, name: &str) {
-    let block = Block::default().borders(Borders::ALL).title(format!(" {name} "));
+fn render_main_map(frame: &mut Frame, area: Rect, state: &AppState) {
+    let block = Block::default().borders(Borders::ALL).title(" GLOBAL STRATEGIC MAP ");
     let inner = block.inner(area);
     frame.render_widget(block, area);
-
-    // vertically center the mode label
-    let rows = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Percentage(50), Constraint::Length(1), Constraint::Min(0)])
-        .split(inner);
+    frame.render_widget(WorldMap, inner);
     frame.render_widget(
-        Paragraph::new(name)
-            .alignment(Alignment::Center)
-            .style(Style::default().fg(Color::Green)),
-        rows[1],
+        ThreatOverlay {
+            missiles: &state.missiles,
+            threats: &state.threats,
+            bases: &state.bases,
+            tick: state.tick_count,
+            nerd_fonts: state.nerd_fonts,
+        },
+        inner,
     );
 }
 
-fn render_input_bar(frame: &mut Frame, view: &ViewState) {
+fn render_comms(frame: &mut Frame, area: Rect, state: &AppState) {
     frame.render_widget(
-        Paragraph::new(" [Tab] Next  [Shift+Tab] Prev  [?] Help  [q] Quit")
+        CommsPanel::new(&state.comms, state.comms_scroll),
+        area,
+    );
+}
+
+fn render_scenario(frame: &mut Frame, area: Rect, state: &AppState) {
+    match &state.current_scenario {
+        Some(scenario) => {
+            let mut panel = DecisionPanel::new(scenario, state.selected_option);
+            if let Some((remaining, total)) = state.countdown {
+                panel = panel.with_countdown(remaining, total);
+            }
+            frame.render_widget(panel, area);
+        }
+        None => {
+            let block = Block::default().borders(Borders::ALL).title(" SCENARIO ");
+            let inner = block.inner(area);
+            frame.render_widget(block, area);
+            frame.render_widget(
+                Paragraph::new("AWAITING SCENARIO DATA...")
+                    .alignment(Alignment::Center)
+                    .style(Style::default().fg(Color::Yellow)),
+                inner,
+            );
+        }
+    }
+}
+
+fn render_defcon(frame: &mut Frame, area: Rect, state: &AppState) {
+    let block = Block::default().borders(Borders::ALL).title(" DEFCON STATUS ");
+    let inner = block.inner(area);
+    frame.render_widget(block, area);
+
+    let dl = state.defcon.level();
+    let color = state.defcon.color();
+
+    let mut lines = Vec::new();
+    lines.push(Line::from(""));
+    lines.push(Line::from(Span::styled(
+        format!("  DEFCON {}", dl),
+        Style::default().fg(color).add_modifier(Modifier::BOLD),
+    )));
+    lines.push(Line::from(Span::styled(
+        format!("  {}", state.defcon.label()),
+        Style::default().fg(color),
+    )));
+    lines.push(Line::from(""));
+    lines.push(Line::from(Span::styled(
+        format!("  {}", state.defcon.description()),
+        Style::default().fg(Color::White),
+    )));
+    lines.push(Line::from(""));
+
+    // defcon gauge
+    for level in (1..=5).rev() {
+        let is_current = level == dl;
+        let lc = match level {
+            5 => Color::Green,
+            4 => Color::Cyan,
+            3 => Color::Yellow,
+            2 => Color::Magenta,
+            _ => Color::Red,
+        };
+        let bar = if is_current { "████████████████" } else { "░░░░░░░░░░░░░░░░" };
+        let marker = if is_current { " ◀" } else { "" };
+        lines.push(Line::from(vec![
+            Span::styled(format!("  DEFCON {} ", level), Style::default().fg(lc)),
+            Span::styled(bar, Style::default().fg(if is_current { lc } else { Color::DarkGray })),
+            Span::styled(marker, Style::default().fg(lc)),
+        ]));
+    }
+
+    lines.push(Line::from(""));
+    lines.push(Line::from(Span::styled(
+        format!("  Turn: {}  Decisions: {}  Threats: {}",
+            state.game_context.turn_number,
+            state.game_context.player_decisions.len(),
+            state.threats.len(),
+        ),
+        Style::default().fg(Color::DarkGray),
+    )));
+
+    frame.render_widget(Paragraph::new(lines), inner);
+}
+
+fn render_settings(frame: &mut Frame, area: Rect, _state: &AppState) {
+    let block = Block::default().borders(Borders::ALL).title(" SETTINGS ");
+    let inner = block.inner(area);
+    frame.render_widget(block, area);
+    frame.render_widget(
+        Paragraph::new("Settings configured via ~/.wopr/settings.json")
+            .alignment(Alignment::Center)
             .style(Style::default().fg(Color::DarkGray)),
+        inner,
+    );
+}
+
+fn render_input_bar(frame: &mut Frame, view: &ViewState, state: &AppState) {
+    let hints = if state.current_scenario.is_some() {
+        " [1-4] Select  [Enter] Confirm  [Tab] Mode  [q] Quit"
+    } else {
+        " [Tab] Next  [Shift+Tab] Prev  [?] Help  [q] Quit"
+    };
+    frame.render_widget(
+        Paragraph::new(hints).style(Style::default().fg(Color::DarkGray)),
         view.input_bar,
     );
 }
 
 fn render_help(frame: &mut Frame, view: &ViewState) {
-    let popup = centered_rect(50, 40, view.content);
+    let popup = centered_rect(50, 50, view.content);
     let block = Block::default().borders(Borders::ALL).title(" HELP ");
     let inner = block.inner(popup);
     frame.render_widget(Clear, popup);
     frame.render_widget(block, popup);
     frame.render_widget(
         Paragraph::new(vec![
+            Line::from(""),
             Line::from("  [Tab]         Next mode"),
             Line::from("  [Shift+Tab]   Prev mode"),
-            Line::from("  [?]           Close help"),
+            Line::from("  [1-4]         Select option"),
+            Line::from("  [Up/Down]     Navigate options"),
+            Line::from("  [Enter]       Confirm decision"),
+            Line::from("  [?]           Toggle help"),
             Line::from("  [q]           Quit"),
+            Line::from(""),
+            Line::from(Span::styled(
+                "  MODES: Map │ Comms │ Scenario │ Defcon │ Settings",
+                Style::default().fg(Color::Yellow),
+            )),
         ]),
         inner,
     );
