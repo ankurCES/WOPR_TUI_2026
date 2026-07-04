@@ -81,11 +81,6 @@ pub fn detect_capabilities() -> TerminalCapabilities {
     let unicode_width_correct = probe_unicode_width();
     let nerd_fonts_likely = probe_nerd_fonts_hint();
 
-    eprintln!(
-        "[WOPR] terminal: color={:?} unicode_ok={} nerd_fonts={}",
-        color_support, unicode_width_correct, nerd_fonts_likely
-    );
-
     TerminalCapabilities { color_support, unicode_width_correct, nerd_fonts_likely }
 }
 

@@ -66,7 +66,14 @@ fn render_status_bar(frame: &mut Frame, view: &ViewState, state: &AppState) {
 
 fn render_content(frame: &mut Frame, view: &ViewState, state: &AppState) {
     match &state.mode {
-        Mode::MainMap | Mode::Scenario => render_main_map(frame, view.top_content, state),
+        Mode::MainMap | Mode::Scenario => {
+            let cols = Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+                .split(view.top_content);
+            render_main_map(frame, cols[0], state);
+            render_comms_stream(frame, cols[1], state);
+        }
         Mode::Comms => render_comms(frame, view.top_content, state),
         Mode::Defcon => render_defcon(frame, view.top_content, state),
         Mode::Settings => render_settings(frame, view.top_content, state),
@@ -122,6 +129,22 @@ fn render_main_map(frame: &mut Frame, area: Rect, state: &AppState) {
 fn render_comms(frame: &mut Frame, area: Rect, state: &AppState) {
     frame.render_widget(
         CommsPanel::new(&state.comms, state.comms_scroll),
+        area,
+    );
+}
+
+fn render_comms_stream(frame: &mut Frame, area: Rect, state: &AppState) {
+    // ponytail: auto-scroll to bottom so latest comms visible = streaming feel
+    let lines_per_msg = 3; // header + translation + spacer
+    let inner_height = area.height.saturating_sub(2) as usize; // border
+    let total_lines = state.comms.len() * lines_per_msg;
+    let auto_scroll = if total_lines > inner_height {
+        (total_lines - inner_height) / lines_per_msg
+    } else {
+        0
+    };
+    frame.render_widget(
+        CommsPanel::new(&state.comms, auto_scroll),
         area,
     );
 }
