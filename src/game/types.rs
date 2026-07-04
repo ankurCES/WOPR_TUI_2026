@@ -36,6 +36,8 @@ pub enum Country {
     Iran,
     India,
     Pakistan,
+    UnitedKingdom,
+    France,
     Unknown,
 }
 
@@ -50,7 +52,27 @@ impl std::fmt::Display for Country {
             Self::Iran => write!(f, "IR"),
             Self::India => write!(f, "IN"),
             Self::Pakistan => write!(f, "PK"),
+            Self::UnitedKingdom => write!(f, "UK"),
+            Self::France => write!(f, "FR"),
             Self::Unknown => write!(f, "??"),
+        }
+    }
+}
+
+impl Country {
+    pub fn full_name(self) -> &'static str {
+        match self {
+            Self::USA => "USA",
+            Self::Russia => "Russia",
+            Self::China => "China",
+            Self::UnitedKingdom => "United Kingdom",
+            Self::France => "France",
+            Self::India => "India",
+            Self::Pakistan => "Pakistan",
+            Self::DPRK => "North Korea",
+            Self::NATO => "NATO",
+            Self::Iran => "Iran",
+            Self::Unknown => "Unknown",
         }
     }
 }

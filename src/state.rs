@@ -1,7 +1,7 @@
 use crate::game::context::GameContext;
 use crate::game::defcon::DefconLevel;
 use crate::game::prefetch::PrefetchCache;
-use crate::game::types::{CommMessage, Scenario};
+use crate::game::types::{CommMessage, Country, Scenario};
 use crate::mode::Mode;
 use crate::ui::threat_overlay::{BaseMarker, MissileTrajectory, ThreatMarker};
 
@@ -10,6 +10,10 @@ pub struct AppState {
     pub defcon: DefconLevel,
     pub tick_count: u64,
     pub terminal_size: (u16, u16),
+    pub show_splash: bool,
+    pub show_country_select: bool,
+    pub country_select_index: usize,
+    pub player_country: Option<Country>,
     pub show_help: bool,
     pub nerd_fonts: bool,
 
@@ -32,6 +36,10 @@ pub struct AppState {
 
     // countdown (remaining, total)
     pub countdown: Option<(u64, u64)>,
+
+    // llm loading overlay
+    pub llm_loading: bool,
+    pub llm_loading_start_tick: u64,
 }
 
 impl AppState {
@@ -41,6 +49,10 @@ impl AppState {
             defcon: DefconLevel::default(),
             tick_count: 0,
             terminal_size: (80, 24),
+            show_splash: true,
+            show_country_select: false,
+            country_select_index: 0,
+            player_country: None,
             show_help: false,
             nerd_fonts: false,
             game_active: false,
@@ -60,6 +72,8 @@ impl AppState {
                 BaseMarker { location: (50.8, 4.4), country_code: "NATO", active: true },
             ],
             countdown: None,
+            llm_loading: false,
+            llm_loading_start_tick: 0,
         }
     }
 

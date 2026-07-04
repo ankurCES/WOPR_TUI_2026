@@ -18,6 +18,7 @@ use crate::game::types::{CommPriority, Country, ScenarioCategory};
 use crate::llm;
 use crate::llm::types::LlmRequest;
 use crate::state::AppState;
+use crate::ui::country_select::COUNTRIES;
 use crate::ui::render;
 use crate::ui::threat_overlay::ThreatMarker;
 use crate::view::compute_view;
@@ -50,9 +51,6 @@ impl App {
         let mut ticker = tokio::time::interval(Duration::from_millis(16));
         let mut events = EventStream::new();
 
-        // start game with initial scenario
-        self.start_game().await;
-
         loop {
             tokio::select! {
                 _ = ticker.tick() => {
@@ -73,7 +71,32 @@ impl App {
                 maybe = events.next() => {
                     match maybe {
                         Some(Ok(CEvent::Key(k))) if k.kind == KeyEventKind::Press => {
-                            match k.code {
+                            if self.state.show_splash {
+                                self.state.show_splash = false;
+                                self.state.show_country_select = true;
+                            } else if self.state.show_country_select {
+                                match k.code {
+                                    KeyCode::Up => {
+                                        self.state.country_select_index =
+                                            self.state.country_select_index.saturating_sub(1);
+                                    }
+                                    KeyCode::Down => {
+                                        self.state.country_select_index =
+                                            (self.state.country_select_index + 1).min(COUNTRIES.len() - 1);
+                                    }
+                                    KeyCode::Enter => {
+                                        let (country, _) = COUNTRIES[self.state.country_select_index];
+                                        self.state.player_country = Some(country);
+                                        self.state.game_context.player_country = Some(country);
+                                        self.state.show_country_select = false;
+                                        self.start_game().await;
+                                    }
+                                    KeyCode::Char('q') => {
+                                        let _ = self.tx.send(AppEvent::Quit).await;
+                                    }
+                                    _ => {}
+                                }
+                            } else { match k.code {
                                 KeyCode::Char('q') => {
                                     let _ = self.tx.send(AppEvent::Quit).await;
                                 }
@@ -99,7 +122,7 @@ impl App {
                                 _ => {
                                     let _ = self.tx.send(AppEvent::Input(k)).await;
                                 }
-                            }
+                            } }
                         }
                         Some(Ok(CEvent::Resize(w, h))) => {
                             let _ = self.tx.send(AppEvent::Resize(w, h)).await;
@@ -116,17 +139,21 @@ impl App {
         self.state.game_active = true;
         self.state.game_context.defcon_level = 5;
 
-        // opening comm
+        let player_country = self.state.player_country.unwrap_or(Country::USA);
+        let nation = player_country.full_name();
         self.state.comms.push(make_comm(
-            Country::USA,
-            "WOPR ONLINE. GLOBAL THERMONUCLEAR WAR SIMULATION INITIATED.",
-            "WOPR ONLINE. GLOBAL THERMONUCLEAR WAR SIMULATION INITIATED.",
+            player_country,
+            format!("WOPR ONLINE. ADVISING {} COMMAND. SIMULATION INITIATED.", nation),
+            format!("WOPR ONLINE. ADVISING {} COMMAND. SIMULATION INITIATED.", nation),
             CommPriority::Flash,
             self.state.tick_count,
             0.0,
         ));
 
+        self.state.llm_loading = true;
+        self.state.llm_loading_start_tick = self.state.tick_count;
         self.generate_scenario(ScenarioCategory::MilitaryConfrontation).await;
+        self.state.llm_loading = false;
     }
 
     async fn generate_scenario(&mut self, category: ScenarioCategory) {
@@ -234,7 +261,10 @@ impl App {
             ScenarioCategory::MilitaryConfrontation,
         ];
         let cat = categories[self.state.game_context.turn_number as usize % categories.len()];
+        self.state.llm_loading = true;
+        self.state.llm_loading_start_tick = self.state.tick_count;
         self.generate_scenario(cat).await;
+        self.state.llm_loading = false;
     }
 
     fn apply_game_event(&mut self, event: GameEvent) {

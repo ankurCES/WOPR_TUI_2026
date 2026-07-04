@@ -32,8 +32,13 @@ pub fn scenario_prompt(context: &GameContext, category: ScenarioCategory) -> Str
         ScenarioCategory::IntelligenceOps => "INTELLIGENCE OPERATIONS",
     };
 
+    let player_line = context
+        .player_country
+        .map(|c| format!("You are advising the {} government.\n", c.full_name()))
+        .unwrap_or_default();
+
     format!(
-        "CURRENT GAME STATE:\n{}\n\nGENERATE SCENARIO: Category={}\n\
+        "{player_line}CURRENT GAME STATE:\n{}\n\nGENERATE SCENARIO: Category={}\n\
          Build on previous events. Escalate or de-escalate based on player history. \
          Reference consequences of prior decisions. Maintain narrative coherence.",
         context.to_llm_context(),

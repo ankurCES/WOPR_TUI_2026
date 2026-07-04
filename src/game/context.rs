@@ -14,6 +14,8 @@ pub struct GameContext {
     pub active_threats: Vec<Threat>,
     pub timeline: Vec<TimelineEvent>,
     pub world_state: WorldState,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub player_country: Option<Country>,
 }
 
 impl GameContext {
@@ -34,6 +36,7 @@ impl GameContext {
             active_threats: Vec::new(),
             timeline: Vec::new(),
             world_state: WorldState::default(),
+            player_country: None,
         }
     }
 

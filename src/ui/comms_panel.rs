@@ -28,6 +28,8 @@ fn country_flag(c: &Country) -> &'static str {
         Country::Iran => "IR",
         Country::India => "IN",
         Country::Pakistan => "PK",
+        Country::UnitedKingdom => "UK",
+        Country::France => "FR",
         Country::Unknown => "??",
     }
 }

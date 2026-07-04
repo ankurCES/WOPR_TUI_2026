@@ -2,8 +2,15 @@ use ratatui::{
     buffer::Buffer,
     layout::Rect,
     style::{Color, Style},
-    widgets::Widget,
+    text::Span,
+    widgets::{
+        canvas::{Canvas, Line as CanvasLine, Points},
+        Widget,
+    },
 };
+
+use crate::game::types::ThreatLevel;
+use crate::ui::threat_overlay::{MissileTrajectory, ThreatMarker};
 
 pub struct Location {
     pub name: &'static str,
@@ -13,26 +20,18 @@ pub struct Location {
 
 pub const LOCATIONS: &[Location] = &[
     Location { name: "Washington", lat: 38.9, lon: -77.0 },
-    Location { name: "Moscow", lat: 55.8, lon: 37.6 },
-    Location { name: "Beijing", lat: 39.9, lon: 116.4 },
-    Location { name: "London", lat: 51.5, lon: -0.1 },
-    Location { name: "Pyongyang", lat: 39.0, lon: 125.7 },
-    Location { name: "Tehran", lat: 35.7, lon: 51.4 },
-    Location { name: "Brussels", lat: 50.8, lon: 4.4 },
-    Location { name: "New Delhi", lat: 28.6, lon: 77.2 },
-    Location { name: "Islamabad", lat: 33.7, lon: 73.0 },
+    Location { name: "Moscow",     lat: 55.8, lon:  37.6 },
+    Location { name: "Beijing",    lat: 39.9, lon: 116.4 },
+    Location { name: "London",     lat: 51.5, lon:  -0.1 },
+    Location { name: "Paris",      lat: 48.9, lon:   2.3 },
+    Location { name: "New Delhi",  lat: 28.6, lon:  77.2 },
+    Location { name: "Pyongyang",  lat: 39.0, lon: 125.7 },
+    Location { name: "Tehran",     lat: 35.7, lon:  51.4 },
+    Location { name: "Islamabad",  lat: 33.7, lon:  73.0 },
 ];
 
-pub fn latlon_to_cell(lat: f32, lon: f32, area: Rect) -> (u16, u16) {
-    let x_frac = (lon + 180.0) / 360.0;
-    let y_frac = (90.0 - lat) / 180.0;
-    let x = area.x + (x_frac * area.width as f32).clamp(0.0, (area.width - 1) as f32) as u16;
-    let y = area.y + (y_frac * area.height as f32).clamp(0.0, (area.height - 1) as f32) as u16;
-    (x, y)
-}
-
-// ponytail: simplified continental outlines as (lat, lon) polylines
-// each continent is a separate slice — rough but recognizable at 80x40
+// ponytail: ~20-30 point polylines per continent, (lat, lon) pairs
+// canvas x=lon, y=lat with y_bounds [-90,90] so north is up
 const CONTINENTS: &[&[(f32, f32)]] = &[
     // North America
     &[(70.0,-170.0),(72.0,-140.0),(70.0,-100.0),(65.0,-90.0),(60.0,-75.0),(50.0,-65.0),
@@ -64,66 +63,93 @@ const CONTINENTS: &[&[(f32, f32)]] = &[
       (-15.0,145.0),(-12.0,142.0),(-15.0,140.0),(-12.0,135.0)],
 ];
 
-pub struct WorldMap;
+// kept for threat_overlay.rs which renders directly to Buffer
+pub fn latlon_to_cell(lat: f32, lon: f32, area: Rect) -> (u16, u16) {
+    let x_frac = (lon + 180.0) / 360.0;
+    let y_frac = (90.0 - lat) / 180.0;
+    let x = area.x + (x_frac * area.width as f32).clamp(0.0, (area.width - 1) as f32) as u16;
+    let y = area.y + (y_frac * area.height as f32).clamp(0.0, (area.height - 1) as f32) as u16;
+    (x, y)
+}
 
-impl Widget for WorldMap {
-    fn render(self, area: Rect, buf: &mut Buffer) {
-        let map_style = Style::default().fg(Color::Green);
-        let marker_style = Style::default().fg(Color::LightGreen);
-        let label_style = Style::default().fg(Color::DarkGray);
-
-        // draw continents
-        for continent in CONTINENTS {
-            for pair in continent.windows(2) {
-                let (x1, y1) = latlon_to_cell(pair[0].0, pair[0].1, area);
-                let (x2, y2) = latlon_to_cell(pair[1].0, pair[1].1, area);
-                draw_line(buf, x1, y1, x2, y2, '.', map_style, area);
-            }
-        }
-
-        // draw locations
-        for loc in LOCATIONS {
-            let (x, y) = latlon_to_cell(loc.lat, loc.lon, area);
-            if area.contains((x, y).into()) {
-                buf[(x, y)].set_char('●').set_style(marker_style);
-                // label to the right if room
-                let label_x = x + 1;
-                if label_x + loc.name.len() as u16 <= area.right() {
-                    buf.set_string(label_x, y, loc.name, label_style);
-                }
-            }
-        }
+fn threat_color(severity: ThreatLevel) -> Color {
+    match severity {
+        ThreatLevel::Low => Color::Cyan,       // radar ping
+        ThreatLevel::Medium => Color::Yellow,  // threat
+        ThreatLevel::High => Color::Red,       // attack
+        ThreatLevel::Critical => Color::LightRed,
     }
 }
 
-fn draw_line(buf: &mut Buffer, x1: u16, y1: u16, x2: u16, y2: u16, ch: char, style: Style, clip: Rect) {
-    let dx = (x2 as i32 - x1 as i32).abs();
-    let dy = -(y2 as i32 - y1 as i32).abs();
-    let sx: i32 = if x1 < x2 { 1 } else { -1 };
-    let sy: i32 = if y1 < y2 { 1 } else { -1 };
-    let mut err = dx + dy;
-    let mut cx = x1 as i32;
-    let mut cy = y1 as i32;
+pub struct WorldMap<'a> {
+    pub missiles: &'a [MissileTrajectory],
+    pub threats: &'a [ThreatMarker],
+    pub tick: u64,
+}
 
-    loop {
-        if cx >= clip.x as i32
-            && cx < clip.right() as i32
-            && cy >= clip.y as i32
-            && cy < clip.bottom() as i32
-        {
-            buf[(cx as u16, cy as u16)].set_char(ch).set_style(style);
-        }
-        if cx == x2 as i32 && cy == y2 as i32 {
-            break;
-        }
-        let e2 = 2 * err;
-        if e2 >= dy {
-            err += dy;
-            cx += sx;
-        }
-        if e2 <= dx {
-            err += dx;
-            cy += sy;
-        }
+impl Widget for WorldMap<'_> {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        let blink = (self.tick / 15) % 2 == 0;
+
+        Canvas::default()
+            .x_bounds([-180.0, 180.0])
+            .y_bounds([-90.0, 90.0])
+            .paint(|ctx| {
+                // continent outlines
+                for continent in CONTINENTS {
+                    for pair in continent.windows(2) {
+                        ctx.draw(&CanvasLine {
+                            x1: pair[0].1 as f64,
+                            y1: pair[0].0 as f64,
+                            x2: pair[1].1 as f64,
+                            y2: pair[1].0 as f64,
+                            color: Color::Green,
+                        });
+                    }
+                }
+
+                // city markers
+                for loc in LOCATIONS {
+                    let coords = [(loc.lon as f64, loc.lat as f64)];
+                    ctx.draw(&Points { coords: &coords, color: Color::LightGreen });
+                    ctx.print(
+                        loc.lon as f64 + 2.0,
+                        loc.lat as f64,
+                        Span::styled(loc.name, Style::default().fg(Color::DarkGray)),
+                    );
+                }
+
+                // missile trajectory lines + moving dot
+                for m in self.missiles {
+                    let p = m.progress.clamp(0.0, 1.0) as f64;
+                    let (ox, oy) = (m.origin.1 as f64, m.origin.0 as f64);
+                    let (tx, ty) = (m.target.1 as f64, m.target.0 as f64);
+
+                    // full path line in dark gray
+                    ctx.draw(&CanvasLine { x1: ox, y1: oy, x2: tx, y2: ty, color: Color::DarkGray });
+
+                    // moving dot along lerp path
+                    let cx = ox + (tx - ox) * p;
+                    let cy = oy + (ty - oy) * p;
+                    let dot_color = if p >= 1.0 { Color::LightRed } else { Color::Red };
+                    ctx.draw(&Points { coords: &[(cx, cy)], color: dot_color });
+                }
+
+                // blinking threat icons: High/Critical blink, others steady
+                for t in self.threats {
+                    let visible = match t.severity {
+                        ThreatLevel::Critical | ThreatLevel::High => blink,
+                        _ => true,
+                    };
+                    if visible {
+                        let color = threat_color(t.severity);
+                        ctx.draw(&Points {
+                            coords: &[(t.location.1 as f64, t.location.0 as f64)],
+                            color,
+                        });
+                    }
+                }
+            })
+            .render(area, buf);
     }
 }

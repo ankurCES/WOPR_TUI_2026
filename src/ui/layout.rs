@@ -11,16 +11,33 @@ use crate::state::AppState;
 use crate::view::ViewState;
 
 use super::comms_panel::CommsPanel;
+use super::country_select::CountrySelectScreen;
 use super::decision::DecisionPanel;
+use super::loading::LoadingOverlay;
 use super::threat_overlay::ThreatOverlay;
 use super::world_map::WorldMap;
 
 pub fn render(frame: &mut Frame, view: &ViewState, state: &AppState) {
+    if state.show_splash {
+        super::splash::render_splash(frame, frame.area(), state.tick_count);
+        return;
+    }
+    if state.show_country_select {
+        let area = centered_rect(70, 90, frame.area());
+        frame.render_widget(CountrySelectScreen { selected: state.country_select_index }, area);
+        return;
+    }
     render_status_bar(frame, view, state);
     render_content(frame, view, state);
     render_input_bar(frame, view, state);
     if state.show_help {
         render_help(frame, view);
+    }
+    if state.llm_loading {
+        frame.render_widget(
+            LoadingOverlay { tick: state.tick_count, start_tick: state.llm_loading_start_tick },
+            view.content,
+        );
     }
 }
 
@@ -60,7 +77,11 @@ fn render_main_map(frame: &mut Frame, area: Rect, state: &AppState) {
     let block = Block::default().borders(Borders::ALL).title(" GLOBAL STRATEGIC MAP ");
     let inner = block.inner(area);
     frame.render_widget(block, area);
-    frame.render_widget(WorldMap, inner);
+    frame.render_widget(WorldMap {
+        missiles: &state.missiles,
+        threats: &state.threats,
+        tick: state.tick_count,
+    }, inner);
     frame.render_widget(
         ThreatOverlay {
             missiles: &state.missiles,
