@@ -81,6 +81,10 @@ fn render_content(frame: &mut Frame, view: &ViewState, state: &AppState) {
 }
 
 fn render_bottom_panel(frame: &mut Frame, view: &ViewState, state: &AppState) {
+    if state.game_over {
+        render_endgame(frame, view.bottom_panel, state);
+        return;
+    }
     match &state.current_scenario {
         Some(scenario) => {
             let mut panel = DecisionPanel::new(scenario, state.selected_option);
@@ -101,6 +105,56 @@ fn render_bottom_panel(frame: &mut Frame, view: &ViewState, state: &AppState) {
             );
         }
     }
+}
+
+fn render_endgame(frame: &mut Frame, area: Rect, state: &AppState) {
+    let is_victory = state.game_outcome_message.as_deref()
+        .map(|m| m.contains("AVERTED") || m.contains("PEACE"))
+        .unwrap_or(false);
+    let (title, color) = if is_victory {
+        (" VICTORY ", Color::Green)
+    } else {
+        (" DEFEAT ", Color::Red)
+    };
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .title(title)
+        .style(Style::default().fg(color));
+    let inner = block.inner(area);
+    frame.render_widget(block, area);
+
+    let msg = state.game_outcome_message.as_deref().unwrap_or("GAME OVER");
+    let turns = state.game_context.turn_number;
+    let decisions = state.game_context.player_decisions.len();
+
+    let mut lines = vec![
+        Line::from(""),
+        Line::from(Span::styled(msg, Style::default().fg(color).add_modifier(Modifier::BOLD))),
+        Line::from(""),
+        Line::from(Span::styled(
+            format!("Turns: {}  Decisions: {}  Final DEFCON: {}", turns, decisions, state.defcon.level()),
+            Style::default().fg(Color::DarkGray),
+        )),
+        Line::from(""),
+        Line::from(vec![
+            Span::styled("  [R] ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+            Span::styled("Play Again    ", Style::default().fg(Color::White)),
+            Span::styled("[Q] ", Style::default().fg(Color::DarkGray)),
+            Span::styled("Quit", Style::default().fg(Color::White)),
+        ]),
+    ];
+
+    if is_victory {
+        lines.insert(1, Line::from(Span::styled(
+            "\"The only winning move is not to play.\"",
+            Style::default().fg(Color::Green),
+        )));
+    }
+
+    frame.render_widget(
+        Paragraph::new(lines).alignment(Alignment::Center),
+        inner,
+    );
 }
 
 fn render_main_map(frame: &mut Frame, area: Rect, state: &AppState) {
@@ -219,7 +273,9 @@ fn render_settings(frame: &mut Frame, area: Rect, _state: &AppState) {
 }
 
 fn render_input_bar(frame: &mut Frame, view: &ViewState, state: &AppState) {
-    let hints = if state.current_scenario.is_some() {
+    let hints = if state.game_over {
+        " [R] Play Again  [Q] Quit"
+    } else if state.current_scenario.is_some() {
         " [1-4] Select  [Enter] Confirm  [Tab] Mode  [q] Quit"
     } else {
         " [Tab] Next  [Shift+Tab] Prev  [?] Help  [q] Quit"

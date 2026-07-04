@@ -96,6 +96,16 @@ impl App {
                                     }
                                     _ => {}
                                 }
+                            } else if self.state.game_over {
+                                match k.code {
+                                    KeyCode::Char('r') | KeyCode::Char('R') => {
+                                        self.restart_game();
+                                    }
+                                    KeyCode::Char('q') => {
+                                        let _ = self.tx.send(AppEvent::Quit).await;
+                                    }
+                                    _ => {}
+                                }
                             } else { match k.code {
                                 KeyCode::Char('q') => {
                                     let _ = self.tx.send(AppEvent::Quit).await;
@@ -135,6 +145,13 @@ impl App {
         }
     }
 
+    fn restart_game(&mut self) {
+        let nerd_fonts = self.state.nerd_fonts;
+        self.state = AppState::new();
+        self.state.nerd_fonts = nerd_fonts;
+        self.state.show_country_select = true;
+    }
+
     fn start_game(&mut self) {
         self.state.game_active = true;
         self.state.game_context.defcon_level = 5;
@@ -155,11 +172,45 @@ impl App {
         self.spawn_scenario(ScenarioCategory::MilitaryConfrontation);
     }
 
-    fn spawn_scenario(&self, category: ScenarioCategory) {
+    fn spawn_scenario(&mut self, category: ScenarioCategory) {
+        self.state.pending_category = Some(category);
+        self.state.retry_count = 0;
+        self.do_spawn_scenario(category);
+    }
+
+    fn retry_scenario(&mut self) {
+        let category = match self.state.pending_category {
+            Some(c) => c,
+            None => return,
+        };
+        self.state.retry_count += 1;
+        if self.state.retry_count > 3 {
+            self.state.llm_loading = false;
+            self.state.comms.push(make_comm(
+                Country::Unknown,
+                "▒▒▒ COMMS FAILURE — ALL RETRIES EXHAUSTED ▒▒▒",
+                "LLM provider unreachable after 4 attempts",
+                CommPriority::Flash,
+                self.state.tick_count,
+                0.0,
+            ));
+            return;
+        }
+        self.state.llm_loading = true;
+        self.state.llm_loading_start_tick = self.state.tick_count;
+        self.do_spawn_scenario(category);
+    }
+
+    fn do_spawn_scenario(&self, category: ScenarioCategory) {
         let tx = self.tx.clone();
         let settings = self.settings.clone();
         let context = self.state.game_context.clone();
+        let retry = self.state.retry_count;
         tokio::spawn(async move {
+            // exponential backoff: 0s, 1s, 2s, 4s
+            if retry > 0 {
+                tokio::time::sleep(Duration::from_secs(1 << (retry - 1))).await;
+            }
             let provider = llm::create_provider(&settings);
             let request = LlmRequest {
                 system_prompt: WOPR_SYSTEM_PROMPT.to_string(),
@@ -207,13 +258,16 @@ impl App {
 
         // check endgame
         if let Some(outcome) = check_endgame(&self.state.game_context) {
+            let msg = match &outcome {
+                crate::game::types::GameOutcome::Victory(m) => m.clone(),
+                crate::game::types::GameOutcome::Defeat(m) => m.clone(),
+            };
             self.state.game_active = false;
+            self.state.game_over = true;
+            self.state.game_outcome_message = Some(msg.clone());
             self.state.comms.push(make_comm(
                 Country::USA,
-                match &outcome {
-                    crate::game::types::GameOutcome::Victory(msg) => msg.clone(),
-                    crate::game::types::GameOutcome::Defeat(msg) => msg.clone(),
-                },
+                &msg,
                 "GAME OVER",
                 CommPriority::Flash,
                 self.state.tick_count,
@@ -293,35 +347,50 @@ impl App {
                 _ => {}
             },
             AppEvent::ScenarioReady(content) => {
-                self.state.llm_loading = false;
                 self.state.scenario_counter += 1;
-                if let Ok(scenario) = parse_scenario(&content, self.state.scenario_counter) {
-                    for comm in &scenario.comms {
-                        let mut c = comm.clone();
-                        c.timestamp = self.state.tick_count;
-                        self.state.comms.push(c);
+                match parse_scenario(&content, self.state.scenario_counter) {
+                    Ok(scenario) => {
+                        self.state.llm_loading = false;
+                        self.state.pending_category = None;
+                        self.state.retry_count = 0;
+                        for comm in &scenario.comms {
+                            let mut c = comm.clone();
+                            c.timestamp = self.state.tick_count;
+                            self.state.comms.push(c);
+                        }
+                        for region in &scenario.affected_regions {
+                            self.state.threats.push(ThreatMarker {
+                                location: crate::game::consequence::region_to_coords(region),
+                                severity: scenario.threat_level,
+                            });
+                        }
+                        self.state.selected_option = 0;
+                        self.state.current_scenario = Some(scenario);
+                        self.state.mode = crate::mode::Mode::Scenario;
                     }
-                    for region in &scenario.affected_regions {
-                        self.state.threats.push(ThreatMarker {
-                            location: crate::game::consequence::region_to_coords(region),
-                            severity: scenario.threat_level,
-                        });
+                    Err(_) => {
+                        self.state.comms.push(make_comm(
+                            Country::Unknown,
+                            "▒▒▒ GARBLED SIGNAL — RETRYING ▒▒▒",
+                            "Scenario parse failed, retrying...",
+                            CommPriority::Immediate,
+                            self.state.tick_count,
+                            0.3,
+                        ));
+                        self.retry_scenario();
                     }
-                    self.state.selected_option = 0;
-                    self.state.current_scenario = Some(scenario);
-                    self.state.mode = crate::mode::Mode::Scenario;
                 }
             }
             AppEvent::ScenarioFailed => {
-                self.state.llm_loading = false;
                 self.state.comms.push(make_comm(
                     Country::Unknown,
-                    "▒▒▒ SIGNAL LOST ▒▒▒",
-                    "COMMS ERROR — LLM provider unreachable",
-                    CommPriority::Flash,
+                    "▒▒▒ SIGNAL LOST — RETRYING ▒▒▒",
+                    "LLM provider error, retrying...",
+                    CommPriority::Immediate,
                     self.state.tick_count,
                     0.0,
                 ));
+                self.retry_scenario();
             }
             AppEvent::GameEvent(_ge) => {}
             AppEvent::Quit => {}

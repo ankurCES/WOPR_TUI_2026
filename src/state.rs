@@ -40,6 +40,14 @@ pub struct AppState {
     // llm loading overlay
     pub llm_loading: bool,
     pub llm_loading_start_tick: u64,
+
+    // endgame
+    pub game_over: bool,
+    pub game_outcome_message: Option<String>,
+
+    // retry state
+    pub pending_category: Option<crate::game::types::ScenarioCategory>,
+    pub retry_count: u32,
 }
 
 impl AppState {
@@ -74,6 +82,10 @@ impl AppState {
             countdown: None,
             llm_loading: false,
             llm_loading_start_tick: 0,
+            game_over: false,
+            game_outcome_message: None,
+            pending_category: None,
+            retry_count: 0,
         }
     }
 
