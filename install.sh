@@ -212,9 +212,17 @@ if [ -n "$SCRIPT_DIR" ] && [ -f "$SCRIPT_DIR/Cargo.toml" ]; then
 else
     SRC="$(mktemp -d)"
     CLEANUP="$SRC"
-    git clone --depth 1 https://github.com/ankurCES/WOPR_TUI_2026.git "$SRC" 2>/dev/null &
-    spinner $! "Cloning WOPR TUI 2026 from NORAD archives"
-    SRC="$SRC/WOPR_TUI_2026"
+    CLONE_LOG=$(mktemp)
+    git clone --depth 1 https://github.com/ankurCES/WOPR_TUI_2026.git "$SRC/repo" >"$CLONE_LOG" 2>&1 &
+    if ! spinner $! "Cloning WOPR TUI 2026 from NORAD archives"; then
+        echo ""
+        printf "  %b✗ CLONE FAILED:%b\n" "$R" "$NC"
+        cat "$CLONE_LOG"
+        rm -f "$CLONE_LOG"
+        exit 1
+    fi
+    rm -f "$CLONE_LOG"
+    SRC="$SRC/repo"
 fi
 
 # ── Build ──
