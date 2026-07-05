@@ -38,7 +38,11 @@ spinner() {
     done
     wait "$pid" 2>/dev/null
     local rc=$?
-    printf "\r  %b✓%b %s\n" "$G" "$NC" "$msg"
+    if [ $rc -eq 0 ]; then
+        printf "\r  %b✓%b %s\n" "$G" "$NC" "$msg"
+    else
+        printf "\r  %b✗%b %s\n" "$R" "$NC" "$msg"
+    fi
     return $rc
 }
 
@@ -217,8 +221,16 @@ fi
 echo ""
 typewrite_color "$Y" "    COMPILING WOPR THEATER ENGINE..." 0.025
 echo ""
-cargo install --path "$SRC" --force >/dev/null 2>&1 &
-spinner $! "Building release binary (this takes 1-2 minutes)"
+BUILD_LOG=$(mktemp)
+cargo install --path "$SRC" --force >"$BUILD_LOG" 2>&1 &
+if ! spinner $! "Building release binary (this takes 1-2 minutes)"; then
+    echo ""
+    printf "  %b✗ BUILD FAILED. Last 50 lines:%b\n" "$R" "$NC"
+    tail -50 "$BUILD_LOG"
+    rm -f "$BUILD_LOG"
+    exit 1
+fi
+rm -f "$BUILD_LOG"
 
 # ── Symlink wopr → wopr-2026 ──
 CARGO_BIN="${CARGO_HOME:-$HOME/.cargo}/bin"
