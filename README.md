@@ -17,10 +17,16 @@ An interactive Cold War simulation TUI where you play as a military advisor resp
 - **LLM Providers** — Stub (6 canned scenarios), Anthropic, and Minimax provider support
 - **Animations** — Braille spinners, typewriter text, pulse/radar overlays, nerd font detection with fallbacks
 
-## Quick Start
+## Install
 
 ```bash
-cargo run
+curl -fsSL https://raw.githubusercontent.com/ankurCES/WOPR_TUI_2026/main/WOPR_TUI_2026/install.sh | bash
+```
+
+Installs Rust (if needed), system deps, builds from source, and puts `wopr` on your PATH. Then just run:
+
+```bash
+wopr
 ```
 
 ### Controls
