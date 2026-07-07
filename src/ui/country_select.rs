@@ -3,7 +3,7 @@ use ratatui::{
     layout::{Alignment, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Clear, Paragraph, Widget},
+    widgets::{Block, Borders, Clear, Paragraph, Widget, Wrap},
 };
 
 use crate::game::types::Country;
@@ -64,6 +64,6 @@ impl Widget for CountrySelectScreen {
             Style::default().fg(Color::DarkGray),
         )));
 
-        Paragraph::new(lines).render(inner, buf);
+        Paragraph::new(lines).wrap(Wrap { trim: true }).render(inner, buf);
     }
 }

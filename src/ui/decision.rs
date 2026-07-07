@@ -38,9 +38,9 @@ impl Widget for DecisionPanel<'_> {
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Min(3),        // description
+                Constraint::Min(2),        // description
                 Constraint::Length(1),     // separator
-                Constraint::Length(self.scenario.player_options.len() as u16 + 1), // options
+                Constraint::Min(self.scenario.player_options.len() as u16 + 1), // options
                 Constraint::Length(if self.countdown.is_some() { 2 } else { 0 }), // countdown
             ])
             .split(inner);
@@ -74,7 +74,7 @@ impl Widget for DecisionPanel<'_> {
                 style,
             )));
         }
-        Paragraph::new(option_lines).render(chunks[2], buf);
+        Paragraph::new(option_lines).wrap(Wrap { trim: true }).render(chunks[2], buf);
 
         // countdown bar
         if let Some((remaining, total)) = self.countdown {

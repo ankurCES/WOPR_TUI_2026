@@ -3,7 +3,7 @@ use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Clear, Paragraph},
+    widgets::{Block, Borders, Clear, Paragraph, Wrap},
 };
 
 use crate::mode::Mode;
@@ -51,36 +51,50 @@ fn render_status_bar(frame: &mut Frame, view: &ViewState, state: &AppState) {
     } else {
         Style::default().fg(Color::Black).bg(color).add_modifier(Modifier::BOLD)
     };
-    let text = Line::from(vec![
+    let w = view.status_bar.width;
+    let mut spans = vec![
         Span::styled(format!(" DEFCON {} ", dl), defcon_style),
         Span::styled(format!(" {} ", label), Style::default().fg(color)),
         Span::styled(" │ ", Style::default().fg(Color::DarkGray)),
         Span::styled(format!("{}", state.mode), Style::default().fg(Color::White)),
         Span::styled(" │ ", Style::default().fg(Color::DarkGray)),
-        Span::styled(format!("T{:06}", state.tick_count), Style::default().fg(Color::DarkGray)),
-        Span::styled(
-            format!("  TURN {}", state.game_context.turn_number),
-            Style::default().fg(Color::Yellow),
-        ),
-        Span::styled(" │ ", Style::default().fg(Color::DarkGray)),
-        tension_gauge("MIL", state.game_context.world_state.military_tension),
-        Span::raw(" "),
-        tension_gauge("ECO", 1.0 - state.game_context.world_state.economic_stability),
-        Span::raw(" "),
-        tension_gauge("POL", state.game_context.world_state.political_unrest),
-    ]);
-    frame.render_widget(Paragraph::new(text), view.status_bar);
+    ];
+    if w >= 80 {
+        spans.push(Span::styled(format!("T{:06}", state.tick_count), Style::default().fg(Color::DarkGray)));
+    }
+    spans.push(Span::styled(
+        format!("  TURN {}", state.game_context.turn_number),
+        Style::default().fg(Color::Yellow),
+    ));
+    if w >= 60 {
+        spans.push(Span::styled(" │ ", Style::default().fg(Color::DarkGray)));
+        spans.push(tension_gauge("MIL", state.game_context.world_state.military_tension));
+        spans.push(Span::raw(" "));
+        spans.push(tension_gauge("ECO", 1.0 - state.game_context.world_state.economic_stability));
+        spans.push(Span::raw(" "));
+        spans.push(tension_gauge("POL", state.game_context.world_state.political_unrest));
+    }
+    frame.render_widget(Paragraph::new(Line::from(spans)), view.status_bar);
 }
 
 fn render_content(frame: &mut Frame, view: &ViewState, state: &AppState) {
     match &state.mode {
         Mode::MainMap | Mode::Scenario => {
-            let cols = Layout::default()
-                .direction(Direction::Horizontal)
-                .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-                .split(view.top_content);
-            render_main_map(frame, cols[0], state);
-            render_comms_stream(frame, cols[1], state);
+            if view.top_content.width < 100 {
+                let rows = Layout::default()
+                    .direction(Direction::Vertical)
+                    .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
+                    .split(view.top_content);
+                render_main_map(frame, rows[0], state);
+                render_comms_stream(frame, rows[1], state);
+            } else {
+                let cols = Layout::default()
+                    .direction(Direction::Horizontal)
+                    .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+                    .split(view.top_content);
+                render_main_map(frame, cols[0], state);
+                render_comms_stream(frame, cols[1], state);
+            }
         }
         Mode::Comms => render_comms(frame, view.top_content, state),
         Mode::Defcon => render_defcon(frame, view.top_content, state),
@@ -294,7 +308,8 @@ fn render_input_bar(frame: &mut Frame, view: &ViewState, state: &AppState) {
 }
 
 fn render_help(frame: &mut Frame, view: &ViewState) {
-    let popup = centered_rect(50, 50, view.top_content);
+    let (px, py) = if view.top_content.width < 100 { (80, 60) } else { (50, 50) };
+    let popup = centered_rect(px, py, view.top_content);
     let block = Block::default().borders(Borders::ALL).title(" HELP ");
     let inner = block.inner(popup);
     frame.render_widget(Clear, popup);
@@ -311,10 +326,15 @@ fn render_help(frame: &mut Frame, view: &ViewState) {
             Line::from("  [q]           Quit"),
             Line::from(""),
             Line::from(Span::styled(
-                "  MODES: Map │ Comms │ About │ Settings │ Defcon  (Decision panel always visible below)",
+                "  MODES: Map │ Comms │ About │ Settings │ Defcon",
                 Style::default().fg(Color::Yellow),
             )),
-        ]),
+            Line::from(Span::styled(
+                "  (Decision panel always visible below)",
+                Style::default().fg(Color::Yellow),
+            )),
+        ])
+        .wrap(Wrap { trim: false }),
         inner,
     );
 }

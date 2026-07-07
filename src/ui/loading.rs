@@ -22,9 +22,9 @@ pub struct LoadingOverlay {
 
 impl Widget for LoadingOverlay {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let pw: u16 = 52;
-        let ph: u16 = 12;
-        if area.width < pw + 2 || area.height < ph + 2 {
+        let pw = area.width.saturating_sub(4).min(52);
+        let ph = area.height.saturating_sub(4).min(12);
+        if pw < 30 || ph < 6 {
             return;
         }
         let popup = Rect {
@@ -57,17 +57,20 @@ impl Widget for LoadingOverlay {
         const CYCLE_COLORS: [Color; 4] = [Color::Green, Color::Yellow, Color::Red, Color::White];
         let accent = CYCLE_COLORS[(self.tick / 30) as usize % CYCLE_COLORS.len()];
 
+        let bar_len = (BAR_LEN * pw as usize / 52).max(2);
+        let label_width = (pw.saturating_sub(2) as usize).saturating_sub(1 + bar_len).min(27);
+
         let mut lines = vec![Line::from("")];
 
         for (i, label) in STEPS.iter().enumerate() {
             let (filled, label_style, bar_color) = if i < current_step {
                 (
-                    BAR_LEN,
+                    bar_len,
                     Style::default().fg(Color::Green),
                     Color::Green,
                 )
             } else if i == current_step {
-                let f = (step_progress as usize * BAR_LEN) / TICKS_PER_STEP as usize;
+                let f = (step_progress as usize * bar_len) / TICKS_PER_STEP as usize;
                 (
                     f,
                     Style::default().fg(accent).add_modifier(Modifier::BOLD),
@@ -81,9 +84,9 @@ impl Widget for LoadingOverlay {
                 )
             };
 
-            let bar = format!("{}{}", "█".repeat(filled), "░".repeat(BAR_LEN - filled));
+            let bar = format!("{}{}", "█".repeat(filled), "░".repeat(bar_len - filled));
             lines.push(Line::from(vec![
-                Span::styled(format!(" {:<27}", label), label_style),
+                Span::styled(format!(" {:<width$}", label, width = label_width), label_style),
                 Span::styled(bar, Style::default().fg(bar_color)),
             ]));
         }

@@ -19,11 +19,18 @@ pub fn compute_view(_state: &AppState, area: Rect) -> ViewState {
         ])
         .split(area);
 
+    let (top_pct, bot_pct) = if area.height <= 20 {
+        (40, 60)
+    } else if area.height <= 30 {
+        (50, 50)
+    } else {
+        (65, 35)
+    };
     let middle = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Percentage(65),
-            Constraint::Percentage(35),
+            Constraint::Percentage(top_pct),
+            Constraint::Percentage(bot_pct),
         ])
         .split(outer[1]);
 
