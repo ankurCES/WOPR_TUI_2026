@@ -1,0 +1,194 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow-soft">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow-strong">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.5"/>
+    </filter>
+    <!-- Scanline pattern -->
+    <pattern id="scanlines" patternUnits="userSpaceOnUse" width="2" height="4">
+      <rect width="2" height="2" fill="rgba(0,0,0,0.2)"/>
+      <rect y="2" width="2" height="2" fill="transparent"/>
+    </pattern>
+    <!-- Screen flicker gradient -->
+    <radialGradient id="screen-glow" cx="50%" cy="45%" r="55%">
+      <stop offset="0%" stop-color="#00ff41" stop-opacity="0.15"/>
+      <stop offset="60%" stop-color="#00ff41" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#001a00" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Body gradient -->
+    <linearGradient id="body-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3a3a3a"/>
+      <stop offset="40%" stop-color="#2a2a2a"/>
+      <stop offset="100%" stop-color="#1a1a1a"/>
+    </linearGradient>
+    <!-- Screen bezel gradient -->
+    <linearGradient id="bezel-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#4a4a4a"/>
+      <stop offset="50%" stop-color="#333"/>
+      <stop offset="100%" stop-color="#222"/>
+    </linearGradient>
+  </defs>
+
+  <!-- === ANTENNAE === -->
+  <!-- Left antenna -->
+  <line x1="175" y1="72" x2="140" y2="22" stroke="#555" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="140" cy="20" r="8" fill="#ff4444" filter="url(#glow)"/>
+  <circle cx="140" cy="20" r="4" fill="#ff6666"/>
+  <!-- Right antenna -->
+  <line x1="337" y1="72" x2="372" y2="22" stroke="#555" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="372" cy="20" r="8" fill="#00ff41" filter="url(#glow)"/>
+  <circle cx="372" cy="20" r="4" fill="#66ff88"/>
+
+  <!-- === MAIN BODY — CRT MONITOR === -->
+  <!-- Outer casing shadow -->
+  <rect x="112" y="72" width="288" height="240" rx="20" fill="#1a1a1a" filter="url(#shadow)"/>
+  <!-- Outer casing -->
+  <rect x="112" y="72" width="288" height="240" rx="20" fill="url(#body-grad)" stroke="#555" stroke-width="2"/>
+  <!-- Inner bezel -->
+  <rect x="132" y="90" width="248" height="195" rx="14" fill="url(#bezel-grad)" stroke="#444" stroke-width="1.5"/>
+
+  <!-- === CRT SCREEN === -->
+  <!-- Screen background (dark CRT) -->
+  <rect x="148" y="104" width="216" height="167" rx="10" fill="#0a100a"/>
+  <!-- Screen ambient glow -->
+  <rect x="148" y="104" width="216" height="167" rx="10" fill="url(#screen-glow)"/>
+
+  <!-- === FACE ON SCREEN === -->
+  <!-- Eyes — glowing phosphor dots -->
+  <!-- Left eye -->
+  <g filter="url(#glow-soft)">
+    <rect x="192" y="148" width="36" height="28" rx="6" fill="none" stroke="#00ff41" stroke-width="2.5"/>
+    <circle cx="210" cy="162" r="6" fill="#00ff41"/>
+    <!-- Pupil highlight -->
+    <circle cx="212" cy="160" r="2" fill="#aaffaa"/>
+  </g>
+  <!-- Right eye -->
+  <g filter="url(#glow-soft)">
+    <rect x="284" y="148" width="36" height="28" rx="6" fill="none" stroke="#00ff41" stroke-width="2.5"/>
+    <circle cx="302" cy="162" r="6" fill="#00ff41"/>
+    <circle cx="304" cy="160" r="2" fill="#aaffaa"/>
+  </g>
+
+  <!-- Eyebrows — slightly concerned/mischievous -->
+  <line x1="190" y1="140" x2="230" y2="136" stroke="#00ff41" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+  <line x1="282" y1="136" x2="322" y2="140" stroke="#00ff41" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+
+  <!-- Mouth — pixel-art style jagged grin -->
+  <path d="M 200 210 L 210 210 L 215 218 L 225 210 L 235 210 L 240 218 L 250 210 L 260 210 L 265 218 L 275 210 L 285 210 L 295 218 L 305 210 L 312 210"
+        fill="none" stroke="#00ff41" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/>
+
+  <!-- Nose — tiny triangle -->
+  <path d="M 253 188 L 256 196 L 250 196 Z" fill="#00ff41" opacity="0.5"/>
+
+  <!-- Small text on screen below face — "JOSHUA" -->
+  <text x="256" y="252" font-family="'SF Mono','Fira Code','JetBrains Mono',monospace" font-size="11" fill="#00ff41" text-anchor="middle" opacity="0.6" letter-spacing="3" filter="url(#glow)">JOSHUA</text>
+
+  <!-- Scanline overlay on screen -->
+  <rect x="148" y="104" width="216" height="167" rx="10" fill="url(#scanlines)" opacity="0.5"/>
+
+  <!-- Screen edge highlight (CRT glass reflection) -->
+  <path d="M 158 104 Q 148 104 148 114 L 148 140" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="3"/>
+
+  <!-- === SIDE VENTS === -->
+  <g opacity="0.4">
+    <line x1="118" y1="150" x2="118" y2="165" stroke="#00ff41" stroke-width="1.5"/>
+    <line x1="118" y1="172" x2="118" y2="187" stroke="#00ff41" stroke-width="1.5"/>
+    <line x1="118" y1="194" x2="118" y2="209" stroke="#00ff41" stroke-width="1.5"/>
+    <line x1="394" y1="150" x2="394" y2="165" stroke="#00ff41" stroke-width="1.5"/>
+    <line x1="394" y1="172" x2="394" y2="187" stroke="#00ff41" stroke-width="1.5"/>
+    <line x1="394" y1="194" x2="394" y2="209" stroke="#00ff41" stroke-width="1.5"/>
+  </g>
+
+  <!-- === CONTROL PANEL (below screen) === -->
+  <!-- Power LED -->
+  <circle cx="160" cy="298" r="4" fill="#00ff41" filter="url(#glow)"/>
+  <!-- Label -->
+  <text x="175" y="301" font-family="'SF Mono',monospace" font-size="7" fill="#888" letter-spacing="2">WOPR</text>
+  <!-- Dial/knob right side -->
+  <circle cx="350" cy="298" r="10" fill="#333" stroke="#555" stroke-width="1.5"/>
+  <circle cx="350" cy="298" r="3" fill="#444"/>
+  <line x1="350" y1="298" x2="350" y2="290" stroke="#777" stroke-width="1.5" stroke-linecap="round"/>
+
+  <!-- === ARMS === -->
+  <!-- Left arm — waving -->
+  <g filter="url(#shadow)">
+    <path d="M 112 200 Q 70 190 55 150 Q 48 130 60 120" fill="none" stroke="#3a3a3a" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M 112 200 Q 70 190 55 150 Q 48 130 60 120" fill="none" stroke="#4a4a4a" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Left hand — 3-finger gripper -->
+    <circle cx="60" cy="118" r="14" fill="#4a4a4a" stroke="#555" stroke-width="1.5"/>
+    <!-- Fingers spread (waving!) -->
+    <line x1="52" y1="108" x2="42" y2="96" stroke="#4a4a4a" stroke-width="5" stroke-linecap="round"/>
+    <line x1="60" y1="104" x2="58" y2="88" stroke="#4a4a4a" stroke-width="5" stroke-linecap="round"/>
+    <line x1="68" y1="108" x2="76" y2="94" stroke="#4a4a4a" stroke-width="5" stroke-linecap="round"/>
+  </g>
+
+  <!-- Right arm — holding a floppy disk -->
+  <g filter="url(#shadow)">
+    <path d="M 400 210 Q 435 215 450 240 Q 458 255 452 270" fill="none" stroke="#3a3a3a" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M 400 210 Q 435 215 450 240 Q 458 255 452 270" fill="none" stroke="#4a4a4a" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Right hand -->
+    <circle cx="452" cy="272" r="14" fill="#4a4a4a" stroke="#555" stroke-width="1.5"/>
+    <!-- Floppy disk -->
+    <g transform="translate(440, 280) rotate(-15)">
+      <rect x="0" y="0" width="40" height="42" rx="2" fill="#222" stroke="#00ff41" stroke-width="1.5"/>
+      <rect x="10" y="0" width="20" height="14" rx="1" fill="#333" stroke="#00ff41" stroke-width="1"/>
+      <rect x="8" y="26" width="24" height="14" rx="1" fill="#1a1a1a" stroke="#00ff41" stroke-width="0.8" opacity="0.6"/>
+      <text x="20" y="38" font-family="monospace" font-size="5" fill="#00ff41" text-anchor="middle" opacity="0.8">3.5"</text>
+    </g>
+  </g>
+
+  <!-- === LEGS / STAND === -->
+  <!-- Central pedestal -->
+  <rect x="210" y="312" width="92" height="30" rx="4" fill="#2a2a2a" stroke="#444" stroke-width="1.5"/>
+  <!-- Pedestal detail line -->
+  <line x1="220" y1="327" x2="292" y2="327" stroke="#00ff41" stroke-width="1" opacity="0.3"/>
+
+  <!-- Base/feet -->
+  <rect x="170" y="342" width="172" height="18" rx="6" fill="#222" stroke="#444" stroke-width="1.5"/>
+  <!-- Left foot -->
+  <rect x="158" y="360" width="60" height="22" rx="8" fill="#2a2a2a" stroke="#444" stroke-width="1.5"/>
+  <rect x="163" y="374" width="50" height="8" rx="4" fill="#222"/>
+  <!-- Right foot -->
+  <rect x="294" y="360" width="60" height="22" rx="8" fill="#2a2a2a" stroke="#444" stroke-width="1.5"/>
+  <rect x="299" y="374" width="50" height="8" rx="4" fill="#222"/>
+
+  <!-- Shoe detail — green accent stripe -->
+  <line x1="168" y1="368" x2="208" y2="368" stroke="#00ff41" stroke-width="1.5" opacity="0.4"/>
+  <line x1="304" y1="368" x2="344" y2="368" stroke="#00ff41" stroke-width="1.5" opacity="0.4"/>
+
+  <!-- === DECORATIVE DETAILS === -->
+  <!-- Chest badge / emblem -->
+  <g transform="translate(256, 298)">
+    <circle r="0" fill="none"/>
+  </g>
+
+  <!-- Floating DEFCON badge above left shoulder -->
+  <g transform="translate(75, 155)" filter="url(#glow)" opacity="0.8">
+    <rect x="-28" y="-10" width="56" height="20" rx="10" fill="rgba(255,68,68,0.15)" stroke="#ff4444" stroke-width="1"/>
+    <text x="0" y="5" font-family="'SF Mono',monospace" font-size="9" fill="#ff4444" text-anchor="middle" font-weight="700" letter-spacing="1">DEFCON</text>
+  </g>
+
+  <!-- Speech bubble — "SHALL WE PLAY A GAME?" -->
+  <g filter="url(#shadow)">
+    <rect x="295" y="42" width="195" height="38" rx="12" fill="#0d1117" stroke="#00ff41" stroke-width="1.5"/>
+    <!-- Bubble tail -->
+    <polygon points="310,80 320,80 305,95" fill="#0d1117" stroke="#00ff41" stroke-width="1.5"/>
+    <line x1="311" y1="79" x2="321" y2="79" stroke="#0d1117" stroke-width="3"/>
+    <text x="392" y="66" font-family="'SF Mono','Fira Code',monospace" font-size="11" fill="#00ff41" text-anchor="middle" letter-spacing="0.5" filter="url(#glow)">SHALL WE PLAY A GAME?</text>
+  </g>
+
+  <!-- Ambient glow behind the whole character -->
+  <circle cx="256" cy="240" r="180" fill="none" stroke="#00ff41" stroke-width="0.5" opacity="0.08"/>
+  <circle cx="256" cy="240" r="220" fill="none" stroke="#00ff41" stroke-width="0.3" opacity="0.04"/>
+</svg>

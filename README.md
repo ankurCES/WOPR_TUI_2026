@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="assets/mascot.svg" alt="Joshua — WOPR TUI Mascot" width="200">
+
 <img src="assets/logo.svg" alt="WOPR TUI 2026 — War Operation Plan Response" width="700">
 
 **A modern terminal reimagining of the 1983 WarGames WOPR system.**
