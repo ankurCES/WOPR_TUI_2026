@@ -363,10 +363,16 @@ impl App {
                 KeyCode::Left | KeyCode::Right => {
                     self.state.top_focus = self.state.top_focus.toggle();
                 }
-                KeyCode::Up if self.state.mode == crate::mode::Mode::Comms => {
+                KeyCode::Char('k') | KeyCode::Up
+                    if self.state.mode == crate::mode::Mode::Comms
+                        || self.state.top_focus == crate::state::TopFocus::Comms =>
+                {
                     self.state.comms_scroll = self.state.comms_scroll.saturating_sub(1);
                 }
-                KeyCode::Down if self.state.mode == crate::mode::Mode::Comms => {
+                KeyCode::Char('j') | KeyCode::Down
+                    if self.state.mode == crate::mode::Mode::Comms
+                        || self.state.top_focus == crate::state::TopFocus::Comms =>
+                {
                     self.state.comms_scroll = (self.state.comms_scroll + 1)
                         .min(self.state.comms.len().saturating_sub(1));
                 }

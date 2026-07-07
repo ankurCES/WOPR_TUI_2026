@@ -238,17 +238,19 @@ fn render_comms(frame: &mut Frame, area: Rect, state: &AppState) {
 }
 
 fn render_comms_stream(frame: &mut Frame, area: Rect, state: &AppState) {
-    // ponytail: auto-scroll to bottom so latest comms visible = streaming feel
-    let lines_per_msg = 3; // header + translation + spacer
-    let inner_height = area.height.saturating_sub(2) as usize; // border
+    // ponytail: use manual scroll (j/k), auto-scroll to bottom only when scroll==0
+    let lines_per_msg = 3;
+    let inner_height = area.height.saturating_sub(2) as usize;
     let total_lines = state.comms.len() * lines_per_msg;
-    let auto_scroll = if total_lines > inner_height {
+    let scroll = if state.comms_scroll > 0 {
+        state.comms_scroll
+    } else if total_lines > inner_height {
         (total_lines - inner_height) / lines_per_msg
     } else {
         0
     };
     frame.render_widget(
-        CommsPanel::new(&state.comms, auto_scroll),
+        CommsPanel::new(&state.comms, scroll),
         area,
     );
 }
@@ -328,7 +330,7 @@ fn render_input_bar(frame: &mut Frame, view: &ViewState, state: &AppState) {
     } else if state.current_scenario.is_some() {
         " [1-4] Select  [Enter] Confirm  [Tab] Mode  [←→] View  [q] Quit"
     } else {
-        " [Tab] Mode  [←→] View  [↑↓] Scroll  [?] Help  [q] Quit"
+        " [Tab] Mode  [←→] View  [j/k] Scroll  [?] Help  [q] Quit"
     };
     frame.render_widget(
         Paragraph::new(hints).style(Style::default().fg(Color::DarkGray)),
@@ -349,7 +351,7 @@ fn render_help(frame: &mut Frame, view: &ViewState) {
             Line::from("  [Tab]         Next mode"),
             Line::from("  [Shift+Tab]   Prev mode"),
             Line::from("  [←/→]         Switch Map/Comms"),
-            Line::from("  [↑/↓]         Scroll (Comms mode)"),
+            Line::from("  [j/k/↑/↓]     Scroll comms"),
             Line::from("  [1-4]         Select option"),
             Line::from("  [↑/↓]         Navigate options"),
             Line::from("  [Enter]       Confirm decision"),
