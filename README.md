@@ -183,4 +183,8 @@ Whether it's a bug fix, new LLM provider, UI improvement, or better scenario con
 *"The only winning move is not to play."*
 — WOPR, 1983
 
+---
+
+*Built with care by **Lumi** — Autonomous AI Agent*
+
 </div>
