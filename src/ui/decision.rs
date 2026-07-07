@@ -35,17 +35,18 @@ impl Widget for DecisionPanel<'_> {
         Clear.render(area, buf);
         block.render(area, buf);
 
+        let desc_height = if inner.height < 12 { 2 } else { 3 };
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Min(2),        // description
-                Constraint::Length(1),     // separator
-                Constraint::Min(self.scenario.player_options.len() as u16 + 1), // options
+                Constraint::Length(desc_height), // description (capped to leave room for options)
+                Constraint::Length(1),           // separator
+                Constraint::Min(3),             // options (scrollable)
                 Constraint::Length(if self.countdown.is_some() { 2 } else { 0 }), // countdown
             ])
             .split(inner);
 
-        // description
+        // description (scrollable if truncated)
         Paragraph::new(self.scenario.description.as_str())
             .wrap(Wrap { trim: true })
             .style(Style::default().fg(Color::White))
@@ -57,11 +58,14 @@ impl Widget for DecisionPanel<'_> {
             .style(Style::default().fg(Color::DarkGray))
             .render(chunks[1], buf);
 
-        // options
+        // options — scrollable to keep selected item in view
         let mut option_lines = vec![Line::from(Span::styled(
             "SELECT RESPONSE:",
             Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD),
         ))];
+        let avail_width = chunks[2].width.saturating_sub(2).max(1) as usize;
+        let mut rendered_lines: u16 = 1; // header line
+        let mut selected_end: u16 = 0;
         for (i, opt) in self.scenario.player_options.iter().enumerate() {
             let style = if i == self.selected {
                 Style::default().fg(Color::Black).bg(Color::Green).add_modifier(Modifier::BOLD)
@@ -69,12 +73,28 @@ impl Widget for DecisionPanel<'_> {
                 Style::default().fg(Color::Green)
             };
             let prefix = if i == self.selected { "▶ " } else { "  " };
-            option_lines.push(Line::from(Span::styled(
-                format!("{prefix}{}. {} — {}", i + 1, opt.label, opt.description),
-                style,
-            )));
+            let text = format!("{prefix}{}. {} — {}", i + 1, opt.label, opt.description);
+            let wrapped = if avail_width > 0 {
+                ((text.len() + avail_width - 1) / avail_width).max(1) as u16
+            } else {
+                1
+            };
+            option_lines.push(Line::from(Span::styled(text, style)));
+            rendered_lines += wrapped;
+            if i == self.selected {
+                selected_end = rendered_lines;
+            }
         }
-        Paragraph::new(option_lines).wrap(Wrap { trim: true }).render(chunks[2], buf);
+        let visible = chunks[2].height;
+        let scroll_y = if selected_end > visible {
+            selected_end.saturating_sub(visible)
+        } else {
+            0
+        };
+        Paragraph::new(option_lines)
+            .wrap(Wrap { trim: true })
+            .scroll((scroll_y, 0))
+            .render(chunks[2], buf);
 
         // countdown bar
         if let Some((remaining, total)) = self.countdown {
