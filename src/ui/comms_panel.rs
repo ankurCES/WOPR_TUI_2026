@@ -47,7 +47,13 @@ impl<'a> CommsPanel<'a> {
 
 impl Widget for CommsPanel<'_> {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let block = Block::default().borders(Borders::ALL).title(" COMMS ");
+        let has_above = self.scroll > 0;
+        let title = if has_above {
+            format!(" COMMS [▲ {}+] ", self.scroll)
+        } else {
+            " COMMS ".to_string()
+        };
+        let block = Block::default().borders(Borders::ALL).title(title);
         let inner = block.inner(area);
         block.render(area, buf);
 

@@ -5,6 +5,22 @@ use crate::game::types::{CommMessage, Country, Scenario};
 use crate::mode::Mode;
 use crate::ui::threat_overlay::{BaseMarker, MissileTrajectory, ThreatMarker};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum TopFocus {
+    #[default]
+    Map,
+    Comms,
+}
+
+impl TopFocus {
+    pub fn toggle(self) -> Self {
+        match self {
+            Self::Map => Self::Comms,
+            Self::Comms => Self::Map,
+        }
+    }
+}
+
 pub struct AppState {
     pub mode: Mode,
     pub defcon: DefconLevel,
@@ -28,6 +44,9 @@ pub struct AppState {
     // comms
     pub comms: Vec<CommMessage>,
     pub comms_scroll: usize,
+
+    // top-half focus (small screens: tab-switch between map and comms)
+    pub top_focus: TopFocus,
 
     // map overlays
     pub missiles: Vec<MissileTrajectory>,
@@ -80,6 +99,7 @@ impl AppState {
             prefetch: PrefetchCache::new(),
             comms: Vec::new(),
             comms_scroll: 0,
+            top_focus: TopFocus::default(),
             missiles: Vec::new(),
             threats: Vec::new(),
             bases: vec![

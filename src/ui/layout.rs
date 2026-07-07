@@ -7,7 +7,7 @@ use ratatui::{
 };
 
 use crate::mode::Mode;
-use crate::state::AppState;
+use crate::state::{AppState, TopFocus};
 use crate::view::ViewState;
 
 use super::comms_panel::CommsPanel;
@@ -23,7 +23,8 @@ pub fn render(frame: &mut Frame, view: &ViewState, state: &AppState) {
         return;
     }
     if state.show_country_select {
-        let area = centered_rect(70, 90, frame.area());
+        let (px, py) = if frame.area().height < 30 { (90, 95) } else { (70, 90) };
+        let area = centered_rect(px, py, frame.area());
         frame.render_widget(CountrySelectScreen { selected: state.country_select_index }, area);
         return;
     }
@@ -81,12 +82,16 @@ fn render_content(frame: &mut Frame, view: &ViewState, state: &AppState) {
     match &state.mode {
         Mode::MainMap | Mode::Scenario => {
             if view.top_content.width < 100 {
+                // Small screen: 1-line tab bar + full-width single panel
                 let rows = Layout::default()
                     .direction(Direction::Vertical)
-                    .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
+                    .constraints([Constraint::Length(1), Constraint::Min(0)])
                     .split(view.top_content);
-                render_main_map(frame, rows[0], state);
-                render_comms_stream(frame, rows[1], state);
+                render_top_tabs(frame, rows[0], state);
+                match state.top_focus {
+                    TopFocus::Map => render_main_map(frame, rows[1], state),
+                    TopFocus::Comms => render_comms_stream(frame, rows[1], state),
+                }
             } else {
                 let cols = Layout::default()
                     .direction(Direction::Horizontal)
@@ -101,6 +106,30 @@ fn render_content(frame: &mut Frame, view: &ViewState, state: &AppState) {
         Mode::Settings => render_settings(frame, view.top_content, state),
         Mode::About => super::about::render_about(frame, view.top_content),
     }
+}
+
+fn render_top_tabs(frame: &mut Frame, area: Rect, state: &AppState) {
+    let (map_style, comms_style) = match state.top_focus {
+        TopFocus::Map => (
+            Style::default().fg(Color::Black).bg(Color::Green).add_modifier(Modifier::BOLD),
+            Style::default().fg(Color::DarkGray),
+        ),
+        TopFocus::Comms => (
+            Style::default().fg(Color::DarkGray),
+            Style::default().fg(Color::Black).bg(Color::Green).add_modifier(Modifier::BOLD),
+        ),
+    };
+    frame.render_widget(
+        Paragraph::new(Line::from(vec![
+            Span::styled(" ◀ ", Style::default().fg(Color::DarkGray)),
+            Span::styled(" MAP ", map_style),
+            Span::styled(" │ ", Style::default().fg(Color::DarkGray)),
+            Span::styled(" COMMS ", comms_style),
+            Span::styled(" ▶ ", Style::default().fg(Color::DarkGray)),
+            Span::styled("  [←/→] switch", Style::default().fg(Color::DarkGray)),
+        ])),
+        area,
+    );
 }
 
 fn render_bottom_panel(frame: &mut Frame, view: &ViewState, state: &AppState) {
@@ -173,7 +202,7 @@ fn render_endgame(frame: &mut Frame, area: Rect, state: &AppState) {
     ]));
 
     frame.render_widget(
-        Paragraph::new(lines).alignment(Alignment::Center),
+        Paragraph::new(lines).alignment(Alignment::Center).wrap(Wrap { trim: false }),
         inner,
     );
 }
@@ -278,7 +307,7 @@ fn render_defcon(frame: &mut Frame, area: Rect, state: &AppState) {
         Style::default().fg(Color::DarkGray),
     )));
 
-    frame.render_widget(Paragraph::new(lines), inner);
+    frame.render_widget(Paragraph::new(lines).wrap(Wrap { trim: false }), inner);
 }
 
 fn render_settings(frame: &mut Frame, area: Rect, _state: &AppState) {
@@ -297,9 +326,9 @@ fn render_input_bar(frame: &mut Frame, view: &ViewState, state: &AppState) {
     let hints = if state.game_over {
         " [R] Play Again  [Q] Quit"
     } else if state.current_scenario.is_some() {
-        " [1-4] Select  [Enter] Confirm  [Tab] Mode  [q] Quit"
+        " [1-4] Select  [Enter] Confirm  [Tab] Mode  [←→] View  [q] Quit"
     } else {
-        " [Tab] Next  [Shift+Tab] Prev  [?] Help  [q] Quit"
+        " [Tab] Mode  [←→] View  [↑↓] Scroll  [?] Help  [q] Quit"
     };
     frame.render_widget(
         Paragraph::new(hints).style(Style::default().fg(Color::DarkGray)),
@@ -319,18 +348,16 @@ fn render_help(frame: &mut Frame, view: &ViewState) {
             Line::from(""),
             Line::from("  [Tab]         Next mode"),
             Line::from("  [Shift+Tab]   Prev mode"),
+            Line::from("  [←/→]         Switch Map/Comms"),
+            Line::from("  [↑/↓]         Scroll (Comms mode)"),
             Line::from("  [1-4]         Select option"),
-            Line::from("  [Up/Down]     Navigate options"),
+            Line::from("  [↑/↓]         Navigate options"),
             Line::from("  [Enter]       Confirm decision"),
             Line::from("  [?]           Toggle help"),
             Line::from("  [q]           Quit"),
             Line::from(""),
             Line::from(Span::styled(
                 "  MODES: Map │ Comms │ About │ Settings │ Defcon",
-                Style::default().fg(Color::Yellow),
-            )),
-            Line::from(Span::styled(
-                "  (Decision panel always visible below)",
                 Style::default().fg(Color::Yellow),
             )),
         ])

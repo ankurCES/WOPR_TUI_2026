@@ -64,6 +64,19 @@ impl Widget for CountrySelectScreen {
             Style::default().fg(Color::DarkGray),
         )));
 
-        Paragraph::new(lines).wrap(Wrap { trim: true }).render(inner, buf);
+        // Scroll to keep selected item visible
+        let lines_per_item: u16 = 3;
+        let selected_top = 1 + self.selected as u16 * lines_per_item;
+        let visible = inner.height;
+        let scroll_y = if selected_top + lines_per_item > visible {
+            selected_top + lines_per_item - visible
+        } else {
+            0
+        };
+
+        Paragraph::new(lines)
+            .wrap(Wrap { trim: true })
+            .scroll((scroll_y, 0))
+            .render(inner, buf);
     }
 }
