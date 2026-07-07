@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="800" height="400">
+  <defs>
+    <!-- CRT phosphor glow -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="glow-strong">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <!-- Scanline pattern -->
+    <pattern id="scanlines" patternUnits="userSpaceOnUse" width="2" height="4">
+      <rect width="2" height="2" fill="rgba(0,0,0,0.15)"/>
+      <rect y="2" width="2" height="2" fill="transparent"/>
+    </pattern>
+    <!-- Radar sweep gradient -->
+    <radialGradient id="radar-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00ff41" stop-opacity="0.3"/>
+      <stop offset="70%" stop-color="#00ff41" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#00ff41" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Background gradient -->
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0a0a0a"/>
+      <stop offset="50%" stop-color="#0d1117"/>
+      <stop offset="100%" stop-color="#0a0a0a"/>
+    </linearGradient>
+    <!-- Border glow gradient -->
+    <linearGradient id="border-glow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00ff41" stop-opacity="0.6"/>
+      <stop offset="50%" stop-color="#00cc33" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#00ff41" stop-opacity="0.6"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="400" fill="url(#bg-grad)" rx="12"/>
+
+  <!-- Outer border - modern rounded with retro glow -->
+  <rect x="3" y="3" width="794" height="394" rx="10" fill="none" stroke="url(#border-glow)" stroke-width="1.5"/>
+  <rect x="8" y="8" width="784" height="384" rx="8" fill="none" stroke="#00ff41" stroke-width="0.5" stroke-opacity="0.2"/>
+
+  <!-- Radar circle element (left side) -->
+  <circle cx="150" cy="200" r="90" fill="none" stroke="#00ff41" stroke-width="0.5" stroke-opacity="0.2"/>
+  <circle cx="150" cy="200" r="60" fill="none" stroke="#00ff41" stroke-width="0.5" stroke-opacity="0.15"/>
+  <circle cx="150" cy="200" r="30" fill="none" stroke="#00ff41" stroke-width="0.5" stroke-opacity="0.1"/>
+  <circle cx="150" cy="200" r="90" fill="url(#radar-glow)"/>
+  <!-- Radar crosshair -->
+  <line x1="60" y1="200" x2="240" y2="200" stroke="#00ff41" stroke-width="0.5" stroke-opacity="0.15"/>
+  <line x1="150" y1="110" x2="150" y2="290" stroke="#00ff41" stroke-width="0.5" stroke-opacity="0.15"/>
+  <!-- Radar blips -->
+  <circle cx="130" cy="170" r="3" fill="#00ff41" opacity="0.8" filter="url(#glow)"/>
+  <circle cx="175" cy="220" r="2" fill="#ff4444" opacity="0.7" filter="url(#glow)"/>
+  <circle cx="110" cy="230" r="2.5" fill="#ffcc00" opacity="0.6" filter="url(#glow)"/>
+  <circle cx="185" cy="165" r="2" fill="#00ff41" opacity="0.5" filter="url(#glow)"/>
+  <!-- Radar sweep line -->
+  <line x1="150" y1="200" x2="220" y2="140" stroke="#00ff41" stroke-width="1.5" stroke-opacity="0.4" filter="url(#glow)"/>
+
+  <!-- WOPR main title -->
+  <text x="430" y="165" font-family="'SF Mono', 'Fira Code', 'JetBrains Mono', 'Cascadia Code', monospace" font-size="72" font-weight="900" fill="#00ff41" text-anchor="middle" letter-spacing="18" filter="url(#glow-strong)">WOPR</text>
+
+  <!-- Subtitle line -->
+  <line x1="290" y1="185" x2="570" y2="185" stroke="#00ff41" stroke-width="0.8" stroke-opacity="0.4"/>
+
+  <!-- Full name -->
+  <text x="430" y="210" font-family="'SF Mono', 'Fira Code', 'JetBrains Mono', monospace" font-size="11" fill="#00cc33" text-anchor="middle" letter-spacing="6" opacity="0.8">WAR OPERATION PLAN RESPONSE</text>
+
+  <!-- TUI 2026 badge - modern pill shape -->
+  <rect x="370" y="225" width="120" height="28" rx="14" fill="none" stroke="#00ff41" stroke-width="1.2" opacity="0.6"/>
+  <text x="430" y="244" font-family="'SF Mono', 'Fira Code', 'JetBrains Mono', monospace" font-size="14" fill="#00ff41" text-anchor="middle" letter-spacing="3" font-weight="700">TUI 2026</text>
+
+  <!-- Decorative elements - right side circuit/data lines -->
+  <!-- Horizontal data lines -->
+  <line x1="620" y1="130" x2="750" y2="130" stroke="#00ff41" stroke-width="0.5" stroke-opacity="0.2"/>
+  <line x1="640" y1="150" x2="770" y2="150" stroke="#00ff41" stroke-width="0.5" stroke-opacity="0.15"/>
+  <line x1="630" y1="170" x2="760" y2="170" stroke="#00ff41" stroke-width="0.5" stroke-opacity="0.1"/>
+  <!-- Data dots on lines -->
+  <circle cx="680" cy="130" r="2" fill="#00ff41" opacity="0.6"/>
+  <circle cx="720" cy="130" r="2" fill="#00ff41" opacity="0.4"/>
+  <circle cx="700" cy="150" r="2" fill="#ffcc00" opacity="0.5"/>
+  <circle cx="660" cy="170" r="2" fill="#00ff41" opacity="0.3"/>
+
+  <!-- Right side - DEFCON indicator -->
+  <g transform="translate(680, 210)">
+    <rect x="0" y="0" width="80" height="16" rx="2" fill="#ff4444" opacity="0.15"/>
+    <text x="40" y="12" font-family="'SF Mono', monospace" font-size="9" fill="#ff4444" text-anchor="middle" font-weight="700" letter-spacing="2">DEFCON 1</text>
+  </g>
+  <g transform="translate(680, 232)">
+    <rect x="0" y="0" width="80" height="16" rx="2" fill="#ff8800" opacity="0.1"/>
+    <text x="40" y="12" font-family="'SF Mono', monospace" font-size="9" fill="#ff8800" text-anchor="middle" letter-spacing="2" opacity="0.6">DEFCON 2</text>
+  </g>
+  <g transform="translate(680, 254)">
+    <rect x="0" y="0" width="80" height="16" rx="2" fill="#ffcc00" opacity="0.08"/>
+    <text x="40" y="12" font-family="'SF Mono', monospace" font-size="9" fill="#ffcc00" text-anchor="middle" letter-spacing="2" opacity="0.4">DEFCON 3</text>
+  </g>
+
+  <!-- Bottom tagline -->
+  <text x="400" y="320" font-family="'SF Mono', 'Fira Code', monospace" font-size="13" fill="#00cc33" text-anchor="middle" opacity="0.5" font-style="italic" letter-spacing="1">"The only winning move is not to play."</text>
+
+  <!-- Bottom info bar -->
+  <line x1="100" y1="350" x2="700" y2="350" stroke="#00ff41" stroke-width="0.5" stroke-opacity="0.15"/>
+  <text x="250" y="370" font-family="'SF Mono', monospace" font-size="10" fill="#00ff41" text-anchor="middle" opacity="0.3" letter-spacing="1">RUST + RATATUI</text>
+  <text x="400" y="370" font-family="'SF Mono', monospace" font-size="10" fill="#444" text-anchor="middle" letter-spacing="1">|</text>
+  <text x="550" y="370" font-family="'SF Mono', monospace" font-size="10" fill="#00ff41" text-anchor="middle" opacity="0.3" letter-spacing="1">GLOBAL THERMONUCLEAR WAR</text>
+
+  <!-- Scanline overlay -->
+  <rect width="800" height="400" fill="url(#scanlines)" rx="12" opacity="0.4"/>
+
+  <!-- Corner accents - modern touch -->
+  <path d="M 20 30 L 20 20 L 30 20" fill="none" stroke="#00ff41" stroke-width="1.5" stroke-opacity="0.5"/>
+  <path d="M 770 30 L 780 20 L 780 30" fill="none" stroke="#00ff41" stroke-width="1.5" stroke-opacity="0.5" transform="rotate(0)"/>
+  <path d="M 780 370 L 780 380 L 770 380" fill="none" stroke="#00ff41" stroke-width="1.5" stroke-opacity="0.5"/>
+  <path d="M 30 380 L 20 380 L 20 370" fill="none" stroke="#00ff41" stroke-width="1.5" stroke-opacity="0.5"/>
+</svg>
